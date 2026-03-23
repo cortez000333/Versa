@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
 
-/* ══════════════════════════════════════════
-   VERSA — DESIGN SYSTEM
-   ══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   VERSA â€” DESIGN SYSTEM
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 :root {
   --bg:        #04080F;
@@ -49,7 +49,7 @@ body::before{
   z-index:0;
 }
 
-/* ── NAV ──────────────────────────────── */
+/* â”€â”€ NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-nav{
   position:fixed;top:0;left:0;right:0;
   height:var(--nav-h);
@@ -76,7 +76,7 @@ body::before{
 }
 .v-nav-link:hover,.v-nav-link.active{color:var(--white)}
 
-/* ── BUTTONS ──────────────────────────── */
+/* â”€â”€ BUTTONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-btn{
   display:inline-flex;align-items:center;gap:6px;
   background:var(--accent);color:var(--white);
@@ -103,11 +103,11 @@ body::before{
 }
 .v-btn-ghost:hover{border-color:var(--border2);color:var(--white)}
 
-/* ── LAYOUT ───────────────────────────── */
+/* â”€â”€ LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-page{padding-top:var(--nav-h);min-height:100vh;position:relative;z-index:1}
 .v-container{max-width:1180px;margin:0 auto;padding:0 44px}
 
-/* ── TYPE ─────────────────────────────── */
+/* â”€â”€ TYPE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-label{
   display:block;
   font-size:11px;font-weight:500;
@@ -133,7 +133,7 @@ body::before{
 }
 .v-sub{font-size:17px;color:var(--muted);line-height:1.72}
 
-/* ── INPUTS ───────────────────────────── */
+/* â”€â”€ INPUTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-input{
   width:100%;
   background:var(--card);
@@ -148,7 +148,7 @@ body::before{
 .v-input::placeholder{color:var(--subtle)}
 .v-input:focus{border-color:rgba(59,130,246,.45)}
 
-/* ── BADGES ───────────────────────────── */
+/* â”€â”€ BADGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .badge{
   display:inline-flex;align-items:center;
   padding:3px 10px;border-radius:100px;
@@ -160,7 +160,7 @@ body::before{
 .badge-gray{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
 .badge-amber{background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.22)}
 
-/* ── LISTING CARD (shared across pages) ── */
+/* â”€â”€ LISTING CARD (shared across pages) â”€â”€ */
 .listing-card{
   background:var(--card);
   border:1px solid var(--border);
@@ -220,10 +220,10 @@ body::before{
 .lc-seller-score{font-size:12px;color:var(--green);font-weight:500}
 .lc-actions{display:flex;gap:7px}
 
-/* ── DIVIDER ──────────────────────────── */
+/* â”€â”€ DIVIDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-divider{height:1px;background:var(--border)}
 
-/* ── FOOTER ───────────────────────────── */
+/* â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .v-footer{
   border-top:1px solid var(--border);
   padding:32px 0;position:relative;z-index:1;
@@ -237,7 +237,7 @@ body::before{
 .v-footer-link{font-size:13px;color:var(--subtle);text-decoration:none}
 .v-footer-link:hover{color:var(--muted)}
 
-/* ── ANIMATIONS ───────────────────────── */
+/* â”€â”€ ANIMATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -248,11 +248,11 @@ body::before{
 .fade-up-3{animation:fadeUp .55s .3s ease both}
 .fade-up-4{animation:fadeUp .55s .4s ease both}
 
-/* ── SCROLL REVEAL ────────────────────── */
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .55s ease,transform .55s ease}
+/* â”€â”€ SCROLL REVEAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.reveal{opacity:1;transform:translateY(0)}
 .reveal.visible{opacity:1;transform:translateY(0)}
 
-/* ── RESPONSIVE ───────────────────────── */
+/* â”€â”€ RESPONSIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media(max-width:768px){
   .v-nav{padding:0 20px}
   .v-container{padding:0 20px}
