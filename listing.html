@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Listing — Versa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.listing-page{padding:88px 0 80px;position:relative;z-index:1}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--subtle);margin-bottom:28px}
+.breadcrumb a{color:var(--subtle);text-decoration:none;transition:color .2s}
+.breadcrumb a:hover{color:var(--muted)}
+.bc-sep{color:var(--border2)}
+
+/* layout */
+.lp-layout{display:grid;grid-template-columns:1fr 370px;gap:26px;align-items:start}
+.lp-main{display:flex;flex-direction:column;gap:18px}
+
+/* header card */
+.lp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.lp-card-body{padding:28px}
+.lp-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.lp-proto-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accentDim);border:1px solid rgba(59,130,246,.2);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--accent2);font-weight:500;margin-bottom:9px}
+.proto-pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s ease infinite}
+.lp-name{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--white);margin-bottom:4px}
+.lp-sub-text{font-size:14px;color:var(--muted)}
+.lp-disc-big{text-align:right;flex-shrink:0}
+.disc-big{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;display:block}
+.disc-big.neg{color:var(--red)}.disc-big.pos{color:var(--green)}
+.disc-big-label{font-size:13px;color:var(--muted)}
+
+.lp-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding-top:22px;border-top:1px solid var(--border)}
+.lpm-label{font-size:10px;color:var(--subtle);letter-spacing:.09em;text-transform:uppercase;margin-bottom:5px}
+.lpm-val{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--white)}
+.lpm-val.green{color:var(--green)}.lpm-val.red{color:var(--red)}
+.lpm-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* detail sections */
+.detail-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.det-sec{padding:22px 26px;border-bottom:1px solid var(--border)}
+.det-sec:last-child{border-bottom:none}
+.det-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:var(--white);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dg-label{font-size:11px;color:var(--subtle);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.dg-val{font-size:14px;color:var(--text)}
+.dg-val.hi{color:var(--white);font-weight:500}
+.dg-val.green{color:var(--green)}.dg-val.blue{color:var(--accent2)}
+
+/* chart */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;color:var(--white)}
+.chart-tabs{display:flex;gap:4px}
+.ctab{background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.ctab.active{background:var(--accentDim);border-color:rgba(59,130,246,.3);color:var(--accent2)}
+.chart-note{font-size:12px;color:var(--subtle);margin-top:12px}
+
+/* comparables */
+.comp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
+.comp-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:var(--white);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.comp-item{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:border-color .15s}
+.comp-item:last-child{margin-bottom:0}
+.comp-item:hover{border-color:rgba(59,130,246,.25)}
+.comp-name{font-size:14px;color:var(--white)}
+.comp-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.comp-mets{display:flex;gap:20px}
+.comp-m-val{font-family:'Syne',sans-serif;font-size:13px;font-weight:600}
+.comp-m-val.green{color:var(--green)}.comp-m-val.neg{color:var(--red)}
+.comp-m-label{font-size:11px;color:var(--subtle);text-align:right}
+
+/* sidebar */
+.lp-sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:88px}
+
+.action-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.ac-head{padding:18px 22px;border-bottom:1px solid var(--border)}
+.ac-price{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--white);margin-bottom:3px}
+.ac-price-sub{font-size:13px;color:var(--muted)}
+.ac-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.ac-row{display:flex;align-items:center;justify-content:space-between}
+.ac-lbl{font-size:13px;color:var(--muted)}
+.ac-val{font-size:13px;color:var(--text);font-weight:500}
+.ac-val.green{color:var(--green)}
+.ac-divider{height:1px;background:var(--border)}
+
+.eff-box{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:14px;text-align:center}
+.eff-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--green);display:block}
+.eff-label{font-size:12px;color:var(--muted);margin-top:3px}
+
+.ac-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--white);font-family:'DM Sans',sans-serif;width:100%;outline:none;transition:border-color .2s}
+.ac-input:focus{border-color:rgba(59,130,246,.42)}
+.ac-foot{padding:14px 22px;display:flex;flex-direction:column;gap:9px}
+
+.seller-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
+.sc-lbl{font-size:10px;color:var(--subtle);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.sc-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sc-av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7C3AED);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.sc-name{font-size:14px;color:var(--white);font-weight:500;margin-bottom:2px}
+.sc-wallet{font-size:12px;color:var(--muted)}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.scs-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white)}
+.scs-val.green{color:var(--green)}
+.scs-label{font-size:11px;color:var(--subtle);margin-top:2px}
+
+.restrict-card{background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:16px 18px}
+.rc-title{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--amber);font-weight:500;margin-bottom:7px}
+.rc-body{font-size:13px;color:var(--muted);line-height:1.64}
+
+@media(max-width:1024px){.lp-layout{grid-template-columns:1fr}.lp-sidebar{position:static}}
+@media(max-width:768px){.lp-metrics{grid-template-columns:repeat(2,1fr)}.det-grid{grid-template-columns:1fr}.comp-mets{display:none}}
+</style>
+</head>
+<body>
+<nav class="v-nav">
+  <a href="index.html" class="v-logo">VERSA<span>.</span></a>
+  <div class="v-nav-links">
+    <a href="index.html"        class="v-nav-link">Home</a>
+    <a href="marketplace.html"  class="v-nav-link active">Marketplace</a>
+    <a href="intelligence.html" class="v-nav-link">Intelligence</a>
+    <a href="profile.html"      class="v-nav-link">Profile</a>
+    <a href="create-listing.html" class="v-btn">+ List Asset</a>
+  </div>
+</nav>
+
+<div class="listing-page">
+  <div class="v-container">
+    <div class="breadcrumb">
+      <a href="marketplace.html">← Marketplace</a>
+      <span class="bc-sep">/</span>
+      <span id="bc-proto">—</span>
+      <span class="bc-sep">/</span>
+      <span id="bc-name">—</span>
+    </div>
+
+    <div class="lp-layout">
+      <!-- MAIN -->
+      <div class="lp-main">
+
+        <!-- header -->
+        <div class="lp-card">
+          <div class="lp-card-body">
+            <div class="lp-head-top">
+              <div>
+                <div class="lp-proto-badge"><span class="proto-pulse"></span><span id="lh-proto">—</span></div>
+                <div class="lp-name" id="lh-name">—</div>
+                <div class="lp-sub-text" id="lh-sub">—</div>
+              </div>
+              <div class="lp-disc-big">
+                <span class="disc-big" id="lh-disc">—</span>
+                <span class="disc-big-label">vs NAV</span>
+              </div>
+            </div>
+            <div class="lp-metrics">
+              <div><div class="lpm-label">Asking price</div><div class="lpm-val" id="lm-price">—</div><div class="lpm-sub" id="lm-qty">—</div></div>
+              <div><div class="lpm-label">NAV per token</div><div class="lpm-val" id="lm-nav">—</div><div class="lpm-sub">Protocol source · today</div></div>
+              <div><div class="lpm-label">Yield at NAV</div><div class="lpm-val green" id="lm-yield">—</div><div class="lpm-sub">Annual</div></div>
+              <div><div class="lpm-label">Days listed</div><div class="lpm-val" id="lm-days">—</div><div class="lpm-sub" id="lm-min">—</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- details -->
+        <div class="detail-card">
+          <div class="det-sec">
+            <div class="det-title">Asset identity</div>
+            <div class="det-grid">
+              <div><div class="dg-label">Protocol</div><div class="dg-val hi" id="d-proto">—</div></div>
+              <div><div class="dg-label">Asset class</div><div class="dg-val hi" id="d-class">—</div></div>
+              <div><div class="dg-label">Sub-category</div><div class="dg-val" id="d-sub">—</div></div>
+              <div><div class="dg-label">Geography</div><div class="dg-val" id="d-geo">—</div></div>
+              <div><div class="dg-label">Token standard</div><div class="dg-val" id="d-std">—</div></div>
+              <div><div class="dg-label">Blockchain</div><div class="dg-val" id="d-chain">—</div></div>
+              <div><div class="dg-label">Legal wrapper</div><div class="dg-val" id="d-legal">—</div></div>
+              <div><div class="dg-label">Settlement currency</div><div class="dg-val" id="d-settle">—</div></div>
+            </div>
+          </div>
+          <div class="det-sec">
+            <div class="det-title">Financial details</div>
+            <div class="det-grid">
+              <div><div class="dg-label">Occupancy</div><div class="dg-val green" id="d-occ">—</div></div>
+              <div><div class="dg-label">Insurance / collateral</div><div class="dg-val green" id="d-ins">—</div></div>
+              <div><div class="dg-label">Total token supply</div><div class="dg-val" id="d-total">—</div></div>
+              <div><div class="dg-label">Minimum purchase</div><div class="dg-val" id="d-min">—</div></div>
+            </div>
+          </div>
+          <div class="det-sec">
+            <div class="det-title">Seller's note</div>
+            <p style="font-size:14px;color:var(--muted);line-height:1.7;font-style:italic" id="d-reason">—</p>
+          </div>
+        </div>
+
+        <!-- price chart -->
+        <div class="chart-card">
+          <div class="chart-hdr">
+            <span class="chart-title">Secondary price history</span>
+            <div class="chart-tabs">
+              <button class="ctab active">30D</button>
+              <button class="ctab">90D</button>
+              <button class="ctab">All</button>
+            </div>
+          </div>
+          <div style="position:relative;height:200px"><canvas id="priceChart"></canvas></div>
+          <p class="chart-note">Blue = secondary trades on Versa &nbsp;·&nbsp; Dashed = NAV &nbsp;·&nbsp; Shaded = discount/premium</p>
+        </div>
+
+        <!-- comparables -->
+        <div class="comp-card">
+          <div class="comp-title">Comparable listings</div>
+          <div id="compListings"></div>
+        </div>
+
+      </div><!-- end main -->
+
+      <!-- SIDEBAR -->
+      <div class="lp-sidebar">
+
+        <div class="action-card">
+          <div class="ac-head">
+            <div class="ac-price" id="ac-price">—</div>
+            <div class="ac-price-sub" id="ac-total">—</div>
+          </div>
+          <div class="ac-body">
+            <div class="ac-row"><span class="ac-lbl">NAV per token</span><span class="ac-val" id="ac-nav">—</span></div>
+            <div class="ac-row"><span class="ac-lbl">Yield at NAV</span><span class="ac-val green" id="ac-yield">—</span></div>
+            <div class="ac-divider"></div>
+            <div>
+              <div class="lpm-label" style="margin-bottom:8px">Your offer price</div>
+              <input class="ac-input" type="number" id="offerInput" placeholder="Enter offer price" oninput="calcEff()">
+            </div>
+            <div class="eff-box">
+              <span class="eff-num" id="effNum">—</span>
+              <div class="eff-label">Effective yield at your price</div>
+            </div>
+            <div>
+              <div class="lpm-label" style="margin-bottom:8px">Quantity (min <span id="minLbl">—</span>)</div>
+              <input class="ac-input" type="number" id="qtyInput" placeholder="Number of tokens" oninput="calcTotal()">
+            </div>
+            <div class="ac-row"><span class="ac-lbl">Total cost</span><span class="ac-val" id="totalCost">—</span></div>
+          </div>
+          <div class="ac-foot">
+            <button class="v-btn" style="width:100%;justify-content:center;padding:13px" onclick="alert('Wallet connection required.')">Buy tokens</button>
+            <button class="v-btn-ghost" style="width:100%;justify-content:center;padding:11px" onclick="alert('Offer sent to seller.')">Make offer</button>
+            <button class="v-btn-ghost" style="width:100%;justify-content:center;padding:11px" onclick="alert('Added to watchlist.')">+ Watchlist</button>
+          </div>
+        </div>
+
+        <div class="seller-card">
+          <div class="sc-lbl">Seller</div>
+          <div class="sc-row">
+            <div class="sc-av" id="sc-av">—</div>
+            <div><div class="sc-name">Verified seller</div><div class="sc-wallet" id="sc-wallet">—</div></div>
+          </div>
+          <div class="sc-stats">
+            <div><div class="scs-val green" id="sc-comp">—</div><div class="scs-label">Completion</div></div>
+            <div><div class="scs-val" id="sc-trades">—</div><div class="scs-label">Trades</div></div>
+            <div><div class="scs-val">✓</div><div class="scs-label">Verified</div></div>
+          </div>
+          <button class="v-btn-ghost" style="width:100%;justify-content:center;padding:9px;font-size:13px" onclick="alert('Message sent.')">Contact seller</button>
+        </div>
+
+        <div class="restrict-card" id="restrictCard">
+          <div class="rc-title">⚠ Transfer restriction</div>
+          <div class="rc-body" id="rc-body">—</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="v-footer" style="position:relative;z-index:1">
+  <div class="v-container">
+    <div class="v-footer-inner">
+      <a href="index.html" class="v-footer-logo">VERSA.</a>
+      <span class="v-footer-note">© 2025 Versa. Cross-protocol RWA secondary market.</span>
+      <a href="mailto:hello@versa.io" class="v-footer-link">hello@versa.io</a>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get('id') || 'realt-detroit-14209';
+const l  = LISTINGS.find(x=>x.id===id) || LISTINGS[0];
+
+// breadcrumb
+document.getElementById('bc-proto').textContent = l.protocol;
+document.getElementById('bc-name').textContent  = l.name;
+
+// header
+document.getElementById('lh-proto').textContent = l.protocol;
+document.getElementById('lh-name').textContent  = l.name;
+document.getElementById('lh-sub').textContent   = `${l.detail} · ${l.sub} · ${l.blockchain}`;
+const discEl = document.getElementById('lh-disc');
+discEl.textContent = fDisc(l.discount);
+discEl.className   = 'disc-big '+(l.discount<0?'neg':'pos');
+
+document.getElementById('lm-price').textContent = fPrice(l.price);
+document.getElementById('lm-qty').textContent   = `${l.qty} tokens available`;
+document.getElementById('lm-nav').textContent   = fPrice(l.nav);
+document.getElementById('lm-yield').textContent = l.yieldNav ? fYield(l.yieldNav) : 'N/A';
+document.getElementById('lm-days').textContent  = l.daysListed;
+document.getElementById('lm-min').textContent   = `Min purchase: ${l.minQty}`;
+
+// details
+document.getElementById('d-proto').textContent  = l.protocol;
+document.getElementById('d-class').textContent  = l.assetClass;
+document.getElementById('d-sub').textContent    = l.sub;
+document.getElementById('d-geo').textContent    = l.geo;
+document.getElementById('d-std').textContent    = l.standard;
+document.getElementById('d-chain').textContent  = l.blockchain;
+document.getElementById('d-legal').textContent  = l.legal;
+document.getElementById('d-settle').textContent = l.settle;
+document.getElementById('d-occ').textContent    = l.occupancy !== null ? l.occupancy+'%' : 'N/A';
+document.getElementById('d-ins').textContent    = l.insurance ? 'Yes ↗' : 'No';
+document.getElementById('d-total').textContent  = l.totalTokens ? l.totalTokens.toLocaleString() : 'N/A';
+document.getElementById('d-min').textContent    = l.minQty+' tokens';
+document.getElementById('d-reason').textContent = `"${l.reason}"`;
+
+// sidebar
+document.getElementById('ac-price').textContent = `${fPrice(l.price)} / token`;
+document.getElementById('ac-total').textContent = `Total at asking: ${fPrice(l.price*l.qty)}`;
+document.getElementById('ac-nav').textContent   = fPrice(l.nav);
+document.getElementById('ac-yield').textContent = l.yieldNav ? fYield(l.yieldNav) : 'N/A';
+document.getElementById('minLbl').textContent   = l.minQty;
+document.getElementById('sc-av').textContent    = l.seller.init;
+document.getElementById('sc-wallet').textContent= l.seller.wallet;
+document.getElementById('sc-comp').textContent  = l.seller.comp+'%';
+document.getElementById('sc-trades').textContent= l.seller.trades;
+
+if(l.restriction==='None'){
+  document.getElementById('restrictCard').style.display='none';
+} else {
+  document.getElementById('rc-body').textContent =
+    `This token requires ${l.restrictionDetail}. Your wallet must be authorized before any transfer can complete.`;
+}
+
+// effective yield calc
+function calcEff(){
+  const offer = parseFloat(document.getElementById('offerInput').value);
+  const el = document.getElementById('effNum');
+  if(!offer||!l.yieldNav){el.textContent='—';return}
+  const eff = (l.nav*(l.yieldNav/100)/offer)*100;
+  el.textContent = eff.toFixed(2)+'%';
+  calcTotal();
+}
+function calcTotal(){
+  const qty   = parseFloat(document.getElementById('qtyInput').value);
+  const offer = parseFloat(document.getElementById('offerInput').value)||l.price;
+  const el    = document.getElementById('totalCost');
+  if(!qty){el.textContent='—';return}
+  el.textContent = fPrice(qty*offer);
+}
+
+// chart
+const labels = ['Jan 10','Jan 17','Jan 24','Feb 3','Feb 12','Feb 21','Mar 2','Mar 12','Mar 20'];
+const prices = [49.2,47.8,46.0,44.5,43.8,43.2,42.8,42.6,42.5];
+const navArr  = Array(labels.length).fill(l.nav);
+new Chart(document.getElementById('priceChart').getContext('2d'),{
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      {label:'Trade price',data:prices,borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.07)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#3B82F6',fill:true,tension:.3},
+      {label:'NAV',data:navArr,borderColor:'rgba(255,255,255,.22)',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#0E1828',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleColor:'#C4D4E8',bodyColor:'#6E849E'}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#364D63',font:{size:11}}},
+      y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#364D63',font:{size:11},callback:v=>'$'+v.toFixed(0)}}
+    }
+  }
+});
+
+document.querySelectorAll('.ctab').forEach(b=>{
+  b.addEventListener('click',()=>{document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
+});
+
+// comparables
+const comps = LISTINGS.filter(x=>x.id!==l.id&&x.assetClass===l.assetClass).slice(0,3);
+const compEl = document.getElementById('compListings');
+if(!comps.length){
+  compEl.innerHTML='<p style="font-size:13px;color:var(--muted)">No comparable listings right now.</p>';
+} else {
+  compEl.innerHTML = comps.map(c=>`
+    <div class="comp-item" onclick="location.href='listing.html?id=${c.id}'">
+      <div><div class="comp-name">${c.name}</div><div class="comp-sub">${c.protocol} · ${c.sub}</div></div>
+      <div class="comp-mets">
+        <div class="text-right">
+          <div class="comp-m-val ${c.discount<0?'neg':'green'}">${fDisc(c.discount)}</div>
+          <div class="comp-m-label">vs NAV</div>
+        </div>
+        <div class="text-right">
+          <div class="comp-m-val green">${c.yieldNav?fYield(c.yieldNav):'N/A'}</div>
+          <div class="comp-m-label">yield</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

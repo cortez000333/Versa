@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>List an Asset — Versa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.form-page{padding:88px 0 80px;position:relative;z-index:1}
+.form-layout{display:grid;grid-template-columns:1fr 340px;gap:26px;align-items:start;max-width:980px;margin:0 auto}
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.f-sec{padding:26px;border-bottom:1px solid var(--border)}
+.f-sec:last-child{border-bottom:none}
+.f-sec-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:var(--white);text-transform:uppercase;letter-spacing:.1em;margin-bottom:18px}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.f-group{display:flex;flex-direction:column;gap:6px}
+.f-group.full{grid-column:span 2}
+.f-label{font-size:11px;color:var(--subtle);letter-spacing:.08em;text-transform:uppercase}
+.f-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-size:14px;color:var(--white);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;width:100%}
+.f-input::placeholder{color:var(--subtle)}
+.f-input:focus{border-color:rgba(59,130,246,.42)}
+select.f-input{cursor:pointer}
+textarea.f-input{resize:vertical;min-height:78px}
+.sidebar-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;position:sticky;top:88px;display:flex;flex-direction:column;gap:16px}
+.sc-title{font-size:10px;color:var(--subtle);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+.preview-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:9px}
+.pv-row{display:flex;align-items:center;justify-content:space-between}
+.pv-lbl{font-size:11px;color:var(--subtle)}
+.pv-val{font-size:13px;color:var(--white);font-weight:500}
+.pv-val.red{color:var(--red)}.pv-val.green{color:var(--green)}
+.tip-box{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.14);border-radius:12px;padding:16px}
+.tip-title{font-size:13px;color:var(--accent2);font-weight:500;margin-bottom:10px}
+.tip{font-size:13px;color:var(--muted);line-height:1.62;margin-bottom:8px;display:flex;gap:7px}
+.tip::before{content:'•';color:var(--accent);flex-shrink:0}
+.submit-sec{padding:22px 26px}
+.submit-success{display:none;margin-top:14px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:14px}
+@media(max-width:900px){.form-layout{grid-template-columns:1fr}.sidebar-card{position:static}}
+@media(max-width:768px){.f-grid{grid-template-columns:1fr}.f-group.full{grid-column:span 1}}
+</style>
+</head>
+<body>
+<nav class="v-nav">
+  <a href="index.html" class="v-logo">VERSA<span>.</span></a>
+  <div class="v-nav-links">
+    <a href="index.html" class="v-nav-link">Home</a>
+    <a href="marketplace.html" class="v-nav-link">Marketplace</a>
+    <a href="intelligence.html" class="v-nav-link">Intelligence</a>
+    <a href="profile.html" class="v-nav-link">Profile</a>
+    <a href="create-listing.html" class="v-btn">+ List Asset</a>
+  </div>
+</nav>
+<div class="form-page">
+  <div class="v-container">
+    <div style="margin-bottom:28px">
+      <div class="v-label">New listing</div>
+      <h1 class="v-h2">List your tokenized asset</h1>
+      <p class="v-sub" style="margin-top:8px;max-width:480px">Fill in the details below. Your listing goes live within 24 hours after wallet verification.</p>
+    </div>
+    <div class="form-layout">
+      <div class="form-card">
+        <div class="f-sec">
+          <div class="f-sec-title">Asset identity</div>
+          <div class="f-grid">
+            <div class="f-group"><label class="f-label">Asset class *</label><select class="f-input" id="f-class" onchange="updatePreview()"><option value="">Select</option><option>Real Estate</option><option>Commodity</option><option>Government Securities</option><option>Money Market</option><option>Equities</option><option>Private Credit</option><option>Bonds</option></select></div>
+            <div class="f-group"><label class="f-label">Sub-category *</label><select class="f-input" id="f-sub"><option value="">Select</option><option>Residential</option><option>Commercial</option><option>Gold</option><option>Silver</option><option>Treasury Fund</option><option>Money Market Fund</option><option>ETF</option></select></div>
+            <div class="f-group"><label class="f-label">Issuing protocol *</label><select class="f-input" id="f-proto" onchange="updatePreview()"><option value="">Select</option><option>RealT</option><option>Lofty</option><option>Paxos Gold</option><option>Tether Gold</option><option>Franklin BENJI</option><option>Backed Finance</option><option>Spiko</option><option>Superstate</option><option>USYC</option><option>Kinesis</option></select></div>
+            <div class="f-group"><label class="f-label">Blockchain *</label><select class="f-input" id="f-chain"><option value="">Select</option><option>Ethereum</option><option>Gnosis Chain</option><option>Algorand</option><option>Polygon</option><option>Solana</option><option>Base</option></select></div>
+            <div class="f-group"><label class="f-label">Token standard</label><select class="f-input"><option>ERC-20</option><option>ERC-1400</option><option>ERC-3643</option><option>ASA (Algorand)</option><option>SPL (Solana)</option></select></div>
+            <div class="f-group"><label class="f-label">Legal wrapper</label><select class="f-input"><option>LLC</option><option>SPV</option><option>Regulated fund</option><option>Tracker certificate</option><option>Direct ownership</option></select></div>
+            <div class="f-group full"><label class="f-label">Asset name / identifier *</label><input class="f-input" type="text" id="f-name" placeholder="e.g. RealT Detroit — 14209 Mansfield Ave" oninput="updatePreview()"></div>
+            <div class="f-group"><label class="f-label">Geography</label><input class="f-input" type="text" placeholder="e.g. Detroit, US"></div>
+            <div class="f-group"><label class="f-label">Asset vintage / year</label><input class="f-input" type="number" placeholder="e.g. 1994"></div>
+          </div>
+        </div>
+        <div class="f-sec">
+          <div class="f-sec-title">Pricing &amp; terms</div>
+          <div class="f-grid">
+            <div class="f-group"><label class="f-label">Asking price per token (USD) *</label><input class="f-input" type="number" id="f-price" placeholder="42.50" oninput="updatePreview()" step="0.01"></div>
+            <div class="f-group"><label class="f-label">NAV per token (USD) *</label><input class="f-input" type="number" id="f-nav" placeholder="50.00" oninput="updatePreview()" step="0.01"></div>
+            <div class="f-group"><label class="f-label">Quantity for sale *</label><input class="f-input" type="number" id="f-qty" placeholder="500" oninput="updatePreview()"></div>
+            <div class="f-group"><label class="f-label">Minimum purchase *</label><input class="f-input" type="number" placeholder="50"></div>
+            <div class="f-group"><label class="f-label">Settlement currency</label><select class="f-input"><option>USDC</option><option>USDT</option><option>ETH</option><option>Fiat wire</option></select></div>
+            <div class="f-group"><label class="f-label">Yield at NAV (%)</label><input class="f-input" type="number" placeholder="7.20" step="0.01"></div>
+            <div class="f-group"><label class="f-label">Occupancy (% — real estate only)</label><input class="f-input" type="number" placeholder="100" min="0" max="100"></div>
+            <div class="f-group"><label class="f-label">Insurance / collateral</label><select class="f-input"><option>Yes — insured / collateralized</option><option>No</option></select></div>
+            <div class="f-group full"><label class="f-label">Reason for selling</label><textarea class="f-input" placeholder="Optional — helps buyers trust your listing (e.g. portfolio rebalancing, need for liquidity)"></textarea></div>
+          </div>
+        </div>
+        <div class="f-sec">
+          <div class="f-sec-title">Seller verification</div>
+          <div class="f-grid">
+            <div class="f-group full"><label class="f-label">Your wallet address *</label><input class="f-input" id="f-wallet" type="text" placeholder="0x... (must hold the tokens being listed)"></div>
+            <div class="f-group full"><label class="f-label">Email for notifications</label><input class="f-input" type="email" placeholder="you@email.com — notified when buyers contact you"></div>
+          </div>
+        </div>
+        <div class="submit-sec">
+          <div style="display:flex;gap:11px;flex-wrap:wrap">
+            <button class="v-btn" style="padding:13px 30px;font-size:15px" onclick="submitListing()">Submit listing</button>
+            <button class="v-btn-ghost" style="padding:13px 22px" onclick="location.href='marketplace.html'">Cancel</button>
+          </div>
+          <p style="font-size:12px;color:var(--subtle);margin-top:12px">By submitting you agree to Versa's terms. Wallet ownership verified within 24 hours before activation.</p>
+          <div class="submit-success" id="submitSuccess">
+            <p style="color:var(--green);font-size:14px;font-weight:500">✓ Listing submitted</p>
+            <p style="color:var(--muted);font-size:13px;margin-top:4px">We'll verify your wallet and activate your listing within 24 hours.</p>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <div>
+          <div class="sc-title">Live preview</div>
+          <div class="preview-box">
+            <div class="pv-row"><span class="pv-lbl">Protocol</span><span class="pv-val" id="pv-proto">—</span></div>
+            <div class="pv-row"><span class="pv-lbl">Asset</span><span class="pv-val" id="pv-name">—</span></div>
+            <div class="pv-row"><span class="pv-lbl">Asking price</span><span class="pv-val" id="pv-price">—</span></div>
+            <div class="pv-row"><span class="pv-lbl">NAV</span><span class="pv-val" id="pv-nav">—</span></div>
+            <div class="pv-row"><span class="pv-lbl">Premium / discount</span><span class="pv-val" id="pv-disc">—</span></div>
+            <div class="pv-row"><span class="pv-lbl">Quantity</span><span class="pv-val" id="pv-qty">—</span></div>
+          </div>
+        </div>
+        <div class="tip-box">
+          <div class="tip-title">💡 Tips for better listings</div>
+          <div class="tip">Listings near NAV convert faster. Deep discounts make buyers suspicious.</div>
+          <div class="tip">Always state transfer restrictions clearly — surprises after negotiation kill deals.</div>
+          <div class="tip">A clear reason for selling builds buyer confidence significantly.</div>
+          <div class="tip">Set a realistic minimum — very high minimums reduce your buyer pool.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer class="v-footer" style="position:relative;z-index:1">
+  <div class="v-container"><div class="v-footer-inner">
+    <a href="index.html" class="v-footer-logo">VERSA.</a>
+    <span class="v-footer-note">© 2025 Versa. Cross-protocol RWA secondary market.</span>
+    <a href="mailto:hello@versa.io" class="v-footer-link">hello@versa.io</a>
+  </div></div>
+</footer>
+<script>
+function updatePreview(){
+  const proto=document.getElementById('f-proto').value;
+  const name=document.getElementById('f-name').value;
+  const price=parseFloat(document.getElementById('f-price').value);
+  const nav=parseFloat(document.getElementById('f-nav').value);
+  const qty=document.getElementById('f-qty').value;
+  document.getElementById('pv-proto').textContent=proto||'—';
+  document.getElementById('pv-name').textContent=name||'—';
+  document.getElementById('pv-price').textContent=price?'$'+price.toFixed(2):'—';
+  document.getElementById('pv-nav').textContent=nav?'$'+nav.toFixed(2):'—';
+  document.getElementById('pv-qty').textContent=qty?qty+' tokens':'—';
+  const discEl=document.getElementById('pv-disc');
+  if(price&&nav){const d=((price-nav)/nav*100).toFixed(1);discEl.textContent=(d>=0?'+':'')+d+'%';discEl.className='pv-val '+(d<0?'red':'green')}
+  else{discEl.textContent='—';discEl.className='pv-val'}
+}
+function submitListing(){
+  const req=['f-class','f-proto','f-name','f-price','f-nav','f-qty','f-wallet'];
+  let ok=true;
+  req.forEach(id=>{const el=document.getElementById(id);if(!el.value){el.style.borderColor='rgba(248,113,113,.5)';setTimeout(()=>el.style.borderColor='',2000);ok=false}});
+  if(!ok)return;
+  document.getElementById('submitSuccess').style.display='block';
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

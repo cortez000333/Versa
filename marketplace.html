@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Marketplace — Versa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+
+/* ═══ TOPBAR (search + wallet) ═══════════════ */
+.mkt-topbar{
+  position:fixed;top:var(--nav-h);left:0;right:0;
+  height:54px;
+  background:rgba(4,8,15,.96);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 44px;
+  gap:12px;
+  z-index:150;
+}
+.tb-search{
+  display:flex;align-items:center;gap:9px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 14px;
+  width:248px;
+  transition:border-color .2s;
+}
+.tb-search:focus-within{border-color:rgba(59,130,246,.42)}
+.tb-search-icon{font-size:13px;color:var(--subtle);flex-shrink:0}
+.tb-search input{
+  background:none;border:none;outline:none;
+  font-size:13px;color:var(--white);
+  font-family:'DM Sans',sans-serif;width:100%;
+}
+.tb-search input::placeholder{color:var(--subtle)}
+
+.tb-spacer{flex:1}
+
+.tb-wallet{
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 16px;
+  font-size:13px;color:var(--muted);
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  transition:border-color .2s,color .2s;
+  white-space:nowrap;
+}
+.tb-wallet:hover{border-color:rgba(59,130,246,.38);color:var(--accent2)}
+.tb-wallet.connected{border-color:rgba(52,211,153,.25);color:var(--green)}
+.wallet-led{width:7px;height:7px;border-radius:50%;background:var(--subtle);transition:background .2s}
+.tb-wallet.connected .wallet-led{background:var(--green);animation:pulse 2s ease infinite}
+
+.tb-list-btn{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:8px 18px;font-size:13px;font-weight:500;
+  font-family:'DM Sans',sans-serif;cursor:pointer;
+  transition:background .2s;white-space:nowrap;
+}
+.tb-list-btn:hover{background:var(--accent2)}
+
+/* ═══ PAGE OFFSET ════════════════════════════ */
+.mkt-page{padding-top:calc(var(--nav-h) + 54px);min-height:100vh;position:relative;z-index:1}
+
+/* ═══ TRENDING STRIP ══════════════════════════ */
+.trending-strip{
+  border-bottom:1px solid var(--border);
+  background:var(--bg2);
+}
+.trending-inner{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  max-width:1180px;margin:0 auto;padding:0 44px;
+  gap:0;
+}
+.tr-col{padding:22px 0 20px}
+.tr-col:not(:last-child){
+  border-right:1px solid var(--border);
+  padding-right:36px;
+  margin-right:0;
+}
+.tr-col:not(:first-child){
+  padding-left:36px;
+}
+
+.tr-title{
+  font-size:11px;font-weight:700;
+  color:var(--muted);
+  letter-spacing:.10em;text-transform:uppercase;
+  margin-bottom:16px;
+  display:block;
+}
+
+.tr-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 8px;margin:0 -8px;
+  border-radius:7px;cursor:pointer;
+  transition:background .15s;
+}
+.tr-item:hover{background:rgba(255,255,255,.03)}
+
+.tr-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.tr-rank{font-size:11px;color:var(--subtle);width:14px;flex-shrink:0}
+.tr-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.tr-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-proto{font-size:11px;color:var(--subtle);margin-top:1px}
+.tr-right{text-align:right;flex-shrink:0;margin-left:10px}
+.tr-val{font-family:'Syne',sans-serif;font-size:13px;font-weight:600}
+.tr-val.pos{color:var(--green)}.tr-val.neg{color:var(--red)}.tr-val.blue{color:var(--accent2)}
+.tr-meta{font-size:11px;color:var(--subtle);margin-top:1px}
+
+/* ═══ CATEGORY ROW ════════════════════════════ */
+.cat-row{
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  position:sticky;
+  top:calc(var(--nav-h) + 54px);
+  z-index:100;
+}
+.cat-inner{
+  max-width:1180px;margin:0 auto;padding:0 44px;
+  display:flex;align-items:center;gap:6px;
+  height:50px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.cat-inner::-webkit-scrollbar{display:none}
+
+.cat-btn{
+  background:transparent;
+  border:1px solid transparent;
+  border-radius:100px;
+  padding:5px 16px;
+  font-size:13px;color:var(--muted);
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  white-space:nowrap;flex-shrink:0;
+  transition:all .15s;
+}
+.cat-btn:hover{border-color:var(--border2);color:var(--white)}
+.cat-btn.active{
+  background:var(--accentDim);
+  border-color:rgba(59,130,246,.3);
+  color:var(--accent2);
+}
+
+.cat-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 4px}
+
+/* filter button — far right */
+.cat-filter-wrap{margin-left:auto;flex-shrink:0;position:relative}
+.cat-filter-btn{
+  display:flex;align-items:center;gap:6px;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:5px 13px;
+  font-size:12px;color:var(--muted);
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:border-color .2s,color .2s;
+  white-space:nowrap;
+}
+.cat-filter-btn:hover,.cat-filter-btn.open{border-color:var(--border2);color:var(--white)}
+.filter-icon{font-size:13px}
+
+/* dropdown filter menu */
+.filter-dropdown{
+  display:none;
+  position:absolute;right:0;top:calc(100% + 8px);
+  background:var(--card2);
+  border:1px solid var(--border2);
+  border-radius:11px;
+  padding:8px;
+  min-width:200px;
+  z-index:400;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.filter-dropdown.open{display:block}
+.fd-label{
+  font-size:10px;color:var(--subtle);
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:8px 10px 6px;
+}
+.fd-option{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 10px;border-radius:7px;
+  font-size:13px;color:var(--muted);
+  cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.fd-option:hover{background:rgba(255,255,255,.05);color:var(--white)}
+.fd-option.active{color:var(--accent2)}
+.fd-check{font-size:12px;color:var(--accent2);opacity:0}
+.fd-option.active .fd-check{opacity:1}
+.fd-div{height:1px;background:var(--border);margin:6px 0}
+
+/* ═══ MAIN CONTENT ════════════════════════════ */
+.mkt-main{
+  max-width:1180px;margin:0 auto;
+  padding:32px 44px 80px;
+}
+.mkt-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;
+}
+.mkt-count{font-size:13px;color:var(--muted)}
+.mkt-count strong{color:var(--white)}
+.mkt-sort{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:7px;padding:7px 12px;
+  font-size:13px;color:var(--muted);
+  font-family:'DM Sans',sans-serif;
+  cursor:pointer;outline:none;
+}
+
+/* ═══ LISTINGS GRID ═══════════════════════════ */
+.listings-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+/* ═══ EMPTY STATE ═════════════════════════════ */
+.empty{display:none;text-align:center;padding:80px 40px;color:var(--muted)}
+.empty.show{display:block}
+.empty-icon{font-size:42px;margin-bottom:16px}
+.empty-title{font-family:'Syne',sans-serif;font-size:18px;color:var(--text);margin-bottom:8px}
+
+@media(max-width:1060px){.listings-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+  .mkt-topbar{padding:0 20px}
+  .tb-search{width:160px}
+  .trending-inner{grid-template-columns:1fr;padding:0 20px}
+  .tr-col:not(:last-child){border-right:none;border-bottom:1px solid var(--border);padding-right:0;margin-right:0;padding-bottom:14px;margin-bottom:8px}
+  .cat-inner{padding:0 20px}
+  .mkt-main{padding:24px 20px 60px}
+  .listings-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="v-nav">
+  <a href="index.html" class="v-logo">VERSA<span>.</span></a>
+  <div class="v-nav-links">
+    <a href="index.html"        class="v-nav-link">Home</a>
+    <a href="marketplace.html"  class="v-nav-link active">Marketplace</a>
+    <a href="intelligence.html" class="v-nav-link">Intelligence</a>
+    <a href="profile.html"      class="v-nav-link">Profile</a>
+    <a href="create-listing.html" class="v-btn">+ List Asset</a>
+  </div>
+</nav>
+
+<!-- ═══ TOPBAR ═══════════════════════════════ -->
+<div class="mkt-topbar">
+  <!-- search left -->
+  <div class="tb-search">
+    <span class="tb-search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search..." oninput="doSearch()">
+  </div>
+
+  <div class="tb-spacer"></div>
+
+  <!-- wallet right -->
+  <button class="tb-wallet" id="walletBtn" onclick="toggleWallet()">
+    <span class="wallet-led" id="walletLed"></span>
+    <span id="walletTxt">Connect wallet</span>
+  </button>
+  <button class="tb-list-btn" onclick="location.href='create-listing.html'">+ List Asset</button>
+</div>
+
+<div class="mkt-page">
+
+  <!-- ═══ TRENDING STRIP ══════════════════════ -->
+  <div class="trending-strip">
+    <div class="trending-inner">
+
+      <!-- TRENDING ASSETS -->
+      <div class="tr-col">
+        <div class="tr-title">🔥 Trending Assets</div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=realt-detroit-14209'">
+          <div class="tr-left">
+            <span class="tr-rank">1</span>
+            <span class="tr-dot"></span>
+            <div><div class="tr-name">RealT Detroit</div><div class="tr-proto">Real Estate · Gnosis</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val neg">−15.0%</div><div class="tr-meta">vs NAV</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=paxg-gold-001'">
+          <div class="tr-left">
+            <span class="tr-rank">2</span>
+            <span class="tr-dot" style="background:#FBBF24"></span>
+            <div><div class="tr-name">PAX Gold</div><div class="tr-proto">Commodity · Ethereum</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val neg">−0.9%</div><div class="tr-meta">vs NAV</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=spiko-eur-004'">
+          <div class="tr-left">
+            <span class="tr-rank">3</span>
+            <span class="tr-dot" style="background:#34D399"></span>
+            <div><div class="tr-name">Spiko EUR T-Bills</div><div class="tr-proto">Money Market · ETH</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val pos">+0.4%</div><div class="tr-meta">vs NAV</div></div>
+        </div>
+      </div>
+
+      <!-- NEWLY ADDED -->
+      <div class="tr-col">
+        <div class="tr-title">✨ Newly Added</div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=paxg-gold-001'">
+          <div class="tr-left">
+            <span class="tr-rank">1</span>
+            <span class="tr-dot" style="background:#FBBF24"></span>
+            <div><div class="tr-name">PAX Gold</div><div class="tr-proto">Paxos Gold · Ethereum</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val blue">1 day ago</div><div class="tr-meta">newest</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=lofty-miami-8821'">
+          <div class="tr-left">
+            <span class="tr-rank">2</span>
+            <span class="tr-dot" style="background:#8B5CF6"></span>
+            <div><div class="tr-name">Lofty Miami</div><div class="tr-proto">Real Estate · Algorand</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val blue">3 days ago</div><div class="tr-meta">+2.9% vs NAV</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=kinesis-gold-005'">
+          <div class="tr-left">
+            <span class="tr-rank">3</span>
+            <span class="tr-dot" style="background:#F59E0B"></span>
+            <div><div class="tr-name">Kinesis Gold</div><div class="tr-proto">Commodity · Ethereum</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val blue">6 days ago</div><div class="tr-meta">gold + yield</div></div>
+        </div>
+      </div>
+
+      <!-- TOP YIELD GAINERS -->
+      <div class="tr-col">
+        <div class="tr-title">📈 Top Yield Gainers</div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=lofty-miami-8821'">
+          <div class="tr-left">
+            <span class="tr-rank">1</span>
+            <span class="tr-dot" style="background:#8B5CF6"></span>
+            <div><div class="tr-name">Lofty Miami</div><div class="tr-proto">Real Estate · Algorand</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val pos">11.40%</div><div class="tr-meta">yield at NAV</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=realt-chicago-7741'">
+          <div class="tr-left">
+            <span class="tr-rank">2</span>
+            <span class="tr-dot"></span>
+            <div><div class="tr-name">RealT Chicago</div><div class="tr-proto">Real Estate · Gnosis</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val pos">10.55%</div><div class="tr-meta">eff. yield</div></div>
+        </div>
+
+        <div class="tr-item" onclick="location.href='listing.html?id=superstate-ustb-006'">
+          <div class="tr-left">
+            <span class="tr-rank">3</span>
+            <span class="tr-dot" style="background:#60A5FA"></span>
+            <div><div class="tr-name">Superstate USTB</div><div class="tr-proto">Gov. Securities · ETH</div></div>
+          </div>
+          <div class="tr-right"><div class="tr-val pos">5.11%</div><div class="tr-meta">eff. yield</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- end trending -->
+
+  <!-- ═══ CATEGORY ROW ════════════════════════ -->
+  <div class="cat-row">
+    <div class="cat-inner">
+      <button class="cat-btn active" onclick="setCategory('all',this)">All Assets</button>
+      <button class="cat-btn" onclick="setCategory('Real Estate',this)">Real Estate</button>
+      <button class="cat-btn" onclick="setCategory('Commodity',this)">Commodities</button>
+      <button class="cat-btn" onclick="setCategory('Government Securities',this)">Gov. Securities</button>
+      <button class="cat-btn" onclick="setCategory('Money Market',this)">Money Market</button>
+      <button class="cat-btn" onclick="setCategory('Equities',this)">Equities</button>
+      <button class="cat-btn" onclick="setCategory('Private Credit',this)">Private Credit</button>
+      <button class="cat-btn" onclick="setCategory('Bonds',this)">Bonds</button>
+
+      <div class="cat-sep"></div>
+
+      <!-- FILTER BUTTON -->
+      <div class="cat-filter-wrap">
+        <button class="cat-filter-btn" id="filterBtn" onclick="toggleFilter()">
+          <span class="filter-icon">⚙</span>
+          <span id="filterLabel">Sort &amp; Filter</span>
+        </button>
+        <div class="filter-dropdown" id="filterDropdown">
+          <div class="fd-label">Sort by</div>
+          <div class="fd-option active" onclick="setSort('discount',this)">
+            Highest discount <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-option" onclick="setSort('yield',this)">
+            Highest yield <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-option" onclick="setSort('newest',this)">
+            Recently added <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-option" onclick="setSort('price_asc',this)">
+            Price: low to high <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-option" onclick="setSort('price_desc',this)">
+            Price: high to low <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-div"></div>
+          <div class="fd-label">Show only</div>
+          <div class="fd-option" id="fdUSOnly" onclick="toggleUS()">
+            Available to US investors <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-option" id="fdFreeTransfer" onclick="toggleFreeTransfer()">
+            Free transfer (no KYC) <span class="fd-check">✓</span>
+          </div>
+          <div class="fd-div"></div>
+          <div class="fd-option" onclick="resetFilters()" style="color:var(--red);">
+            Reset all filters <span class="fd-check"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LISTINGS ══════════════════════════════ -->
+  <div class="mkt-main">
+    <div class="mkt-header">
+      <p class="mkt-count"><strong id="listCount">9</strong> listings</p>
+      <select class="mkt-sort" id="sortSelect" onchange="handleSortChange()">
+        <option value="discount">Highest discount</option>
+        <option value="yield">Highest yield</option>
+        <option value="newest">Recently added</option>
+        <option value="price_asc">Price: low to high</option>
+        <option value="price_desc">Price: high to low</option>
+      </select>
+    </div>
+
+    <div class="listings-grid" id="listingsGrid"></div>
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No listings match your filters</div>
+      <p>Try adjusting your search or filter settings.</p>
+    </div>
+  </div>
+
+</div><!-- end mkt-page -->
+
+<footer class="v-footer">
+  <div class="v-container">
+    <div class="v-footer-inner">
+      <a href="index.html" class="v-footer-logo">VERSA.</a>
+      <span class="v-footer-note">© 2025 Versa. Cross-protocol RWA secondary market.</span>
+      <a href="mailto:hello@versa.io" class="v-footer-link">hello@versa.io</a>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+/* ── STATE ── */
+let state = {
+  category: 'all',
+  search: '',
+  sort: 'discount',
+  usOnly: false,
+  freeTransfer: false,
+  walletConnected: false,
+};
+
+/* ── WALLET ── */
+function toggleWallet(){
+  state.walletConnected = !state.walletConnected;
+  const btn = document.getElementById('walletBtn');
+  const txt = document.getElementById('walletTxt');
+  if(state.walletConnected){
+    btn.classList.add('connected');
+    txt.textContent = '0x4f2a...8c1d';
+  } else {
+    btn.classList.remove('connected');
+    txt.textContent = 'Connect wallet';
+  }
+}
+
+/* ── CATEGORY ── */
+function setCategory(cat, el){
+  state.category = cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+/* ── SEARCH ── */
+function doSearch(){
+  state.search = document.getElementById('searchInput').value.toLowerCase();
+  render();
+}
+
+/* ── SORT ── */
+function setSort(val, el){
+  state.sort = val;
+  document.querySelectorAll('.fd-option').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sortSelect').value = val;
+  render();
+}
+function handleSortChange(){
+  state.sort = document.getElementById('sortSelect').value;
+  render();
+}
+
+/* ── FILTER TOGGLES ── */
+function toggleFilter(){
+  const btn = document.getElementById('filterBtn');
+  const dd  = document.getElementById('filterDropdown');
+  btn.classList.toggle('open');
+  dd.classList.toggle('open');
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.cat-filter-wrap')) {
+    document.getElementById('filterBtn').classList.remove('open');
+    document.getElementById('filterDropdown').classList.remove('open');
+  }
+});
+
+function toggleUS(){
+  state.usOnly = !state.usOnly;
+  document.getElementById('fdUSOnly').classList.toggle('active', state.usOnly);
+  render();
+}
+function toggleFreeTransfer(){
+  state.freeTransfer = !state.freeTransfer;
+  document.getElementById('fdFreeTransfer').classList.toggle('active', state.freeTransfer);
+  render();
+}
+function resetFilters(){
+  state.usOnly = false; state.freeTransfer = false; state.sort = 'discount';
+  document.getElementById('fdUSOnly').classList.remove('active');
+  document.getElementById('fdFreeTransfer').classList.remove('active');
+  document.querySelectorAll('.fd-option').forEach(o=>o.classList.remove('active'));
+  document.querySelectorAll('.fd-option')[0].classList.add('active');
+  document.getElementById('sortSelect').value = 'discount';
+  render();
+}
+
+/* ── FILTER + SORT ── */
+function getFiltered(){
+  let list = LISTINGS.filter(l=>{
+    if(state.category !== 'all' && l.assetClass !== state.category) return false;
+    if(state.search){
+      const hay = (l.name+l.protocol+l.assetClass+l.sub+l.geo).toLowerCase();
+      if(!hay.includes(state.search)) return false;
+    }
+    if(state.usOnly && !l.us) return false;
+    if(state.freeTransfer && l.restriction !== 'None') return false;
+    return true;
+  });
+
+  list.sort((a,b)=>{
+    if(state.sort==='discount')   return a.discount - b.discount;
+    if(state.sort==='yield')      return (b.yieldNav||0) - (a.yieldNav||0);
+    if(state.sort==='newest')     return a.daysListed - b.daysListed;
+    if(state.sort==='price_asc')  return a.price - b.price;
+    if(state.sort==='price_desc') return b.price - a.price;
+    return 0;
+  });
+
+  return list;
+}
+
+/* ── RENDER ── */
+function render(){
+  const list = getFiltered();
+  const grid = document.getElementById('listingsGrid');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('listCount').textContent = list.length;
+  if(!list.length){
+    grid.innerHTML = '';
+    empty.classList.add('show');
+  } else {
+    empty.classList.remove('show');
+    grid.innerHTML = list.map(renderCard).join('');
+  }
+}
+
+// Run after DOM is fully ready
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', render);
+} else {
+  render();
+}
+</script>
+</body>
+</html>
+
