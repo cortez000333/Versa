@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Wallet, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Wallet, Plus, Trash2, Save, DownloadCloud } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import type { Position, RedemptionFrequency } from "@/lib/position";
 import {
   computePortfolio,
@@ -312,14 +314,144 @@ function redemptionSummary(p: Position): string {
   return base;
 }
 
+// Status banner shown after a save/load attempt.
+type Notice = { kind: "success" | "error"; text: string } | null;
+
+const PORTFOLIO_NAME = "My portfolio"; // one-per-user for now; name isn't user-facing yet
+
 export default function PortfolioTracker() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+
+  // ── Auth state (same pattern as /account) ──────────────────────
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  // ── Save/load state ────────────────────────────────────────────
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<Notice>(null);
+  // Tracks which user we've already auto-loaded for, so the on-mount
+  // auto-load fires once per sign-in (never silently re-overwrites).
+  const autoLoadedFor = useRef<string | null>(null);
 
   const portfolio = useMemo(() => computePortfolio(positions), [positions]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  // ── Wire up the live session ───────────────────────────────────
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      // Reset auto-load tracking on full sign-out so a later sign-in re-loads.
+      if (!s) autoLoadedFor.current = null;
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // ── Read the user's saved portfolio from Supabase ──────────────
+  // RLS guarantees this only ever returns the signed-in user's own row.
+  async function fetchSavedPositions(userId: string): Promise<Position[] | null> {
+    const { data, error } = await supabase
+      .from("portfolios")
+      .select("positions")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null; // no saved portfolio yet
+    return (data.positions ?? []) as Position[];
+  }
+
+  // ── Manual load (button) ───────────────────────────────────────
+  async function loadPortfolio(opts?: { silent?: boolean }) {
+    if (!session) return;
+    setLoading(true);
+    if (!opts?.silent) setNotice(null);
+    try {
+      const saved = await fetchSavedPositions(session.user.id);
+      if (saved == null) {
+        if (!opts?.silent) {
+          setNotice({ kind: "error", text: "No saved portfolio found yet — add positions and save." });
+        }
+        return;
+      }
+      setPositions(saved);
+      if (!opts?.silent) {
+        setNotice({ kind: "success", text: "Loaded your saved portfolio." });
+      }
+    } catch (err) {
+      setNotice({
+        kind: "error",
+        text: err instanceof Error ? `Couldn't load: ${err.message}` : "Couldn't load your portfolio.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Save (button) — one row per user, handled in app logic ─────
+  // Find the user's existing row; UPDATE if present, INSERT if not.
+  async function savePortfolio() {
+    if (!session) return;
+    setSaving(true);
+    setNotice(null);
+    try {
+      const userId = session.user.id;
+      const { data: existing, error: selErr } = await supabase
+        .from("portfolios")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (selErr) throw selErr;
+
+      if (existing) {
+        const { error } = await supabase
+          .from("portfolios")
+          .update({ positions, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("portfolios")
+          .insert({ user_id: userId, name: PORTFOLIO_NAME, positions });
+        if (error) throw error;
+      }
+      // Mark this user as handled so we don't auto-load over the save later.
+      autoLoadedFor.current = userId;
+      setNotice({ kind: "success", text: "Saved to your account." });
+    } catch (err) {
+      setNotice({
+        kind: "error",
+        text: err instanceof Error ? `Couldn't save: ${err.message}` : "Couldn't save your portfolio.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Auto-load on mount / sign-in, ONLY when the tracker is empty ─
+  // If positions already exist we don't touch them — the user gets a
+  // "Load saved portfolio" button instead (never silently overwrite).
+  useEffect(() => {
+    if (!authReady) return;
+    const uid = session?.user.id ?? null;
+    if (!uid || autoLoadedFor.current === uid) return;
+    autoLoadedFor.current = uid;
+    if (positions.length === 0) {
+      void loadPortfolio({ silent: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, session]);
 
   // Only a *valid* maturity date drives the horizon / shows the derived note;
   // partial or invalid text leaves the holding-period input in play.
@@ -389,13 +521,104 @@ export default function PortfolioTracker() {
     padding: "22px 24px",
   };
 
+  const signedIn = !!session;
+  const email = session?.user.email ?? "";
+
+  const secondaryBtn: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 7,
+    background: "transparent",
+    color: INK,
+    border: `1px solid ${LINE}`,
+    borderRadius: 9,
+    padding: "9px 14px",
+    fontSize: 13,
+    fontWeight: 700,
+    fontFamily: FONT,
+    cursor: "pointer",
+  };
+  const primaryBtn: React.CSSProperties = {
+    ...secondaryBtn,
+    background: BLUE,
+    color: "#06101F",
+    border: "none",
+  };
+
   return (
     <div style={{ fontFamily: FONT }}>
+      {/* ── Account / save-load controls ─────────────────────── */}
+      {authReady && (
+        <div
+          style={{
+            ...cardStyle,
+            padding: "14px 18px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          {signedIn ? (
+            <>
+              <div style={{ fontSize: 12.5, color: MUTE }}>
+                Signed in as <span style={{ color: INK, fontWeight: 600 }}>{email}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {positions.length > 0 && (
+                  <button
+                    onClick={() => loadPortfolio()}
+                    disabled={loading || saving}
+                    style={{ ...secondaryBtn, opacity: loading || saving ? 0.6 : 1 }}
+                  >
+                    <DownloadCloud size={15} /> {loading ? "Loading…" : "Load saved portfolio"}
+                  </button>
+                )}
+                <button
+                  onClick={savePortfolio}
+                  disabled={saving || loading}
+                  style={{ ...primaryBtn, opacity: saving || loading ? 0.6 : 1 }}
+                >
+                  <Save size={15} /> {saving ? "Saving…" : "Save portfolio"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 12.5, color: MUTE }}>
+              <a href="/account" style={{ color: BLUE, fontWeight: 600, textDecoration: "none" }}>
+                Log in
+              </a>{" "}
+              to save your portfolio to your account.
+            </div>
+          )}
+        </div>
+      )}
+
+      {notice && (
+        <div
+          style={{
+            ...cardStyle,
+            padding: "11px 16px",
+            marginBottom: 16,
+            fontSize: 13,
+            color: notice.kind === "success" ? MINT : CORAL,
+            borderColor: notice.kind === "success" ? "#1E4030" : "#5A2020",
+            background: notice.kind === "success" ? "#0F2018" : "#2A1515",
+          }}
+        >
+          {notice.text}
+        </div>
+      )}
+
       {/* ── Add position ─────────────────────────────────────── */}
       <div style={sectionLabel}>
         Add a position{" "}
         <span style={{ color: BLUE, textTransform: "none", letterSpacing: 0 }}>
-          · session only — refreshing the page clears your portfolio
+          {signedIn
+            ? "· saved to your account"
+            : "· session only — refreshing the page clears your portfolio"}
         </span>
       </div>
       <div style={{ ...cardStyle, marginBottom: 26 }}>
