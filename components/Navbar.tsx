@@ -4,7 +4,6 @@ import { Wallet } from "lucide-react";
 const LINE = "#1E2A44";
 const BLUE = "#4F8FF7";
 const INK = "#EAF0FB";
-const MUTE = "#7E8DA8";
 
 export default function Navbar() {
   return (
@@ -32,7 +31,7 @@ export default function Navbar() {
           <div style={{ display: "flex", gap: 26, fontSize: 14 }}>
             <Link href="/" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Markets</Link>
             <Link href="/tracker" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Portfolio Tracker</Link>
-            <span style={{ color: MUTE, fontWeight: 500, cursor: "pointer" }}>Research</span>
+            <Link href="/research" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Research</Link>
           </div>
         </div>
         <button style={{
