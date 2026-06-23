@@ -31,6 +31,7 @@ export default function Navbar() {
           </Link>
           <div style={{ display: "flex", gap: 26, fontSize: 14 }}>
             <Link href="/" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Markets</Link>
+            <Link href="/tracker" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Portfolio Tracker</Link>
             <span style={{ color: MUTE, fontWeight: 500, cursor: "pointer" }}>Research</span>
           </div>
         </div>
