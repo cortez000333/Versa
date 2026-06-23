@@ -8,13 +8,7 @@ export const supabaseAdmin = createClient(
   process.env.SUPABASE_SECRET_KEY!
 );
 
-// ── Public client (browser + server) ─────────────────────────
-// Uses the ANON key, which RESPECTS RLS. This is the client public
-// users hit for auth (signup/login) and for saving/loading their
-// own portfolios. The anon key is public-by-design and safe to
-// expose in the browser. RLS policies (migration 006) ensure each
-// user can only ever read/write their own rows.
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// NOTE: The public (anon-key) client lives in its own file,
+// lib/supabaseClient.ts — keeping it separate ensures the browser
+// bundle never imports this secret-key client (which references
+// server-only env vars and would crash client-side).
