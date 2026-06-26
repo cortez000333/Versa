@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Wallet, Plus, Trash2, Save, DownloadCloud } from "lucide-react";
+import { Wallet, Plus, Trash2, Save, DownloadCloud, Loader2, Zap } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import type { Position, RedemptionFrequency } from "@/lib/position";
@@ -68,6 +68,17 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 9,
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "auto" };
+
+// Small inline status note shown under the ticker field during/after a live fetch.
+const liveNoteStyle = (color: string): React.CSSProperties => ({
+  fontSize: 11,
+  color,
+  marginTop: 6,
+  lineHeight: 1.4,
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+});
 
 // ── Small presentational helpers ──────────────────────────────────
 function Stat({
@@ -335,6 +346,20 @@ export default function PortfolioTracker() {
   // auto-load fires once per sign-in (never silently re-overwrites).
   const autoLoadedFor = useRef<string | null>(null);
 
+  // ── Live RWA.xyz fetch state (Step 2) ──────────────────────────
+  // Enhancement over manual entry: typing a ticker and blurring the field
+  // auto-fills NAV / current price / headline yield from live data. Every
+  // outcome degrades gracefully to manual entry — it never blocks or crashes.
+  const [rwaStatus, setRwaStatus] = useState<"idle" | "loading" | "success" | "notfound">("idle");
+  // The exact ticker we last fired a fetch for — guards against re-fetching
+  // (and clobbering the user's manual edits) when they tab through the field
+  // without changing it. A *changed* ticker re-fetches.
+  const lastFetchedTicker = useRef<string>("");
+  // Whether the three target fields currently hold live-fetched values. Lets us
+  // clear stale live numbers when a later ticker has no data (never present a
+  // stale number as live) while leaving genuinely manual entries untouched.
+  const liveFilled = useRef<boolean>(false);
+
   const portfolio = useMemo(() => computePortfolio(positions), [positions]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -457,6 +482,71 @@ export default function PortfolioTracker() {
   // partial or invalid text leaves the holding-period input in play.
   const hasMaturity = isValidYmd(draft.maturityDate);
 
+  // ── Live fetch on ticker blur ──────────────────────────────────
+  // Fires when the user leaves the Asset name / ticker field (not on every
+  // keystroke, not on a button). The whole thing is best-effort: any failure
+  // silently falls back to manual entry.
+  async function handleTickerBlur() {
+    const ticker = draft.assetName.trim().toUpperCase();
+    if (ticker === "") return; // nothing to look up
+    if (ticker === lastFetchedTicker.current) return; // unchanged → don't refetch / clobber manual edits
+    lastFetchedTicker.current = ticker;
+
+    setRwaStatus("loading");
+    try {
+      const res = await fetch(`/api/rwa?ticker=${encodeURIComponent(ticker)}`);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = (await res.json()) as {
+        nav: number | null;
+        price: number | null;
+        apy: number | null;
+        found: boolean;
+      };
+
+      if (!data || !data.found) {
+        // Not found: clear any stale LIVE values, but never wipe manual entries.
+        if (liveFilled.current) {
+          setDraft((d) => ({ ...d, currentPrice: "", nav: "", headlineYield: "" }));
+        }
+        liveFilled.current = false;
+        setRwaStatus("notfound");
+        return;
+      }
+
+      // Success — populate each field independently. Units already match the
+      // calc engine (NAV/price = $/token, APY = percent), so no conversion.
+      // A null field (e.g. BUIDL has no secondary price) is left blank, not 0.
+      setDraft((d) => ({
+        ...d,
+        currentPrice: data.price != null ? String(data.price) : "",
+        nav: data.nav != null ? String(data.nav) : "",
+        headlineYield: data.apy != null ? String(data.apy) : "",
+      }));
+      liveFilled.current = true;
+      setRwaStatus("success");
+    } catch {
+      // Network error / timeout / junk → silent fallback to manual entry.
+      if (liveFilled.current) {
+        setDraft((d) => ({ ...d, currentPrice: "", nav: "", headlineYield: "" }));
+      }
+      liveFilled.current = false;
+      setRwaStatus("notfound");
+    }
+  }
+
+  // Per-field hint reflecting live-fetch state. The "auto-filled" note only
+  // shows for a field that actually received a value (so BUIDL's blank price
+  // doesn't claim to be live).
+  const liveHint = (val: string, original: string) =>
+    rwaStatus === "loading"
+      ? "Fetching live data…"
+      : rwaStatus === "success" && val.trim() !== ""
+        ? "Auto-filled live from RWA.xyz — editable"
+        : original;
+
+  const fetchingStyle: React.CSSProperties =
+    rwaStatus === "loading" ? { opacity: 0.55 } : {};
+
   function addPosition() {
     const id =
       typeof crypto !== "undefined" && crypto.randomUUID
@@ -489,6 +579,10 @@ export default function PortfolioTracker() {
     };
     setPositions((prev) => [...prev, pos]);
     setDraft(EMPTY_DRAFT);
+    // Reset live-fetch state so the next (blank) draft starts clean.
+    setRwaStatus("idle");
+    lastFetchedTicker.current = "";
+    liveFilled.current = false;
   }
 
   function removePosition(id: string) {
@@ -547,6 +641,9 @@ export default function PortfolioTracker() {
 
   return (
     <div style={{ fontFamily: FONT }}>
+      {/* Keyframes for the live-fetch spinner (no CSS file changes). */}
+      <style>{`@keyframes versaspin { to { transform: rotate(360deg); } }`}</style>
+
       {/* ── Account / save-load controls ─────────────────────── */}
       {authReady && (
         <div
@@ -628,13 +725,31 @@ export default function PortfolioTracker() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-          <Field label="Asset name">
+          <Field
+            label="Asset name / ticker"
+            hint="Type a ticker (e.g. OUSG, USYC, BUIDL) and tab out to auto-fill live NAV, price &amp; yield from RWA.xyz."
+          >
             <input
               value={draft.assetName}
               onChange={(e) => set("assetName", e.target.value)}
-              placeholder="e.g. USYC"
+              onBlur={handleTickerBlur}
+              placeholder="e.g. OUSG"
               style={inputStyle}
             />
+            {rwaStatus === "loading" && (
+              <div style={liveNoteStyle(BLUE)}>
+                <Loader2 size={12} style={{ animation: "versaspin 0.9s linear infinite" }} />
+                Fetching live data from RWA.xyz…
+              </div>
+            )}
+            {rwaStatus === "success" && (
+              <div style={liveNoteStyle(MINT)}>
+                <Zap size={12} /> Live data fetched just now from RWA.xyz
+              </div>
+            )}
+            {rwaStatus === "notfound" && (
+              <div style={liveNoteStyle(MUTE)}>No live data for this ticker — enter values manually.</div>
+            )}
           </Field>
           <ListField
             label="Issuer"
@@ -681,29 +796,38 @@ export default function PortfolioTracker() {
             />
           </Field>
 
-          <Field label="Current price / token (USD)" hint="User-entered in this pass — no live feed yet.">
+          <Field
+            label="Current price / token (USD)"
+            hint={liveHint(draft.currentPrice, "Auto-fills from a live ticker — editable.")}
+          >
             <input
               type="number"
               step="0.0001"
               value={draft.currentPrice}
               onChange={(e) => set("currentPrice", e.target.value)}
               placeholder="0.00"
-              style={inputStyle}
+              style={{ ...inputStyle, ...fetchingStyle }}
             />
           </Field>
-          <Field label="Current NAV / token (USD)" hint="Optional — drives premium/discount.">
+          <Field
+            label="Current NAV / token (USD)"
+            hint={liveHint(draft.nav, "Optional — drives premium/discount.")}
+          >
             <input
               type="number"
               step="0.0001"
               value={draft.nav}
               onChange={(e) => set("nav", e.target.value)}
               placeholder="optional"
-              style={inputStyle}
+              style={{ ...inputStyle, ...fetchingStyle }}
             />
           </Field>
           <Field
             label="Headline yield (%)"
-            hint="Enter the advertised yield, gross of fees. Versa subtracts fees to show true yield."
+            hint={liveHint(
+              draft.headlineYield,
+              "Enter the advertised yield, gross of fees. Versa subtracts fees to show true yield.",
+            )}
           >
             <input
               type="number"
@@ -711,7 +835,7 @@ export default function PortfolioTracker() {
               value={draft.headlineYield}
               onChange={(e) => set("headlineYield", e.target.value)}
               placeholder="0.00"
-              style={inputStyle}
+              style={{ ...inputStyle, ...fetchingStyle }}
             />
           </Field>
 
@@ -1164,7 +1288,8 @@ export default function PortfolioTracker() {
 
           <div style={{ marginTop: 16, fontSize: 11.5, color: FAINT, lineHeight: 1.5 }}>
             All figures are deterministic math on the numbers you entered — facts, not advice.
-            Current price is user-entered in this pass; a live price feed comes next.
+            Live NAV, price &amp; yield can be auto-filled from a ticker (RWA.xyz) and remain editable;
+            any value you type overrides the live data.
           </div>
         </>
       )}
