@@ -134,7 +134,7 @@ export default function ResearchPage() {
       <p style={{ fontSize: 14.5, color: MUTE, margin: "0 0 22px", lineHeight: 1.6 }}>
         Bespoke, independent due-diligence reports on tokenized real-world assets. You tell us the
         asset and what you need to understand; we deliver a detailed written analysis drawn from the
-        same rigor behind the Versa scorecard.
+        same rigor we bring to analyzing every asset.
       </p>
 
       {/* ── Disclaimer ───────────────────────────────────────── */}
