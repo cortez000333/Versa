@@ -135,15 +135,19 @@ export default function StandaloneCalculator() {
   const tokens =
     amount !== null && pricePaid !== null && pricePaid > 0 ? amount / pricePaid : null;
 
-  // Net yield at NAV needs the headline yield; fees fall back to 0.
+  // CANONICAL VERSA MODEL — only recurring fees reduce yield, and the
+  // performance fee is charged on the HEADLINE yield. Fees fall back to 0 when
+  // blank, so net yield computes from the headline alone.
+  //   netNavYield = headline − managementFee − headline×(performanceFee/100)
   const netNavYield =
-    headlineYield !== null ? (headlineYield - feeFlat) * (1 - feePerformance / 100) : null;
-
-  // True yield additionally needs NAV + a positive price (entry-price effect).
-  const trueYield =
-    netNavYield !== null && nav !== null && pricePaid !== null && pricePaid > 0
-      ? netNavYield * (nav / pricePaid)
+    headlineYield !== null
+      ? headlineYield - feeFlat - headlineYield * (feePerformance / 100)
       : null;
+
+  // True yield no longer scales by entry price vs NAV — premium/discount is its
+  // own separate stat and is NEVER folded into true yield. With no NAV scaling,
+  // true yield equals net-yield-at-NAV.
+  const trueYield = netNavYield;
 
   const annualIncome =
     amount !== null && trueYield !== null ? amount * (trueYield / 100) : null;
@@ -185,7 +189,7 @@ export default function StandaloneCalculator() {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 6 }}>
           <NumField label="Headline yield" value={yieldStr} onChange={setYieldStr} suffix="%" step="0.01" placeholder="5.00" />
-          <NumField label="Flat / management fee" value={flatStr} onChange={setFlatStr} suffix="%" step="0.01" placeholder="0" hint="annual, % of capital" />
+          <NumField label="Management fee (%/yr)" value={flatStr} onChange={setFlatStr} suffix="%" step="0.01" placeholder="0" hint="annual, % of capital" />
           <NumField label="Performance fee" value={perfStr} onChange={setPerfStr} suffix="%" step="0.01" placeholder="0" hint="% of the yield" />
           <NumField label="Entry fee" value={entryStr} onChange={setEntryStr} suffix="%" step="0.01" placeholder="0" hint="one-time, % of capital" />
           <NumField label="Exit fee" value={exitStr} onChange={setExitStr} suffix="%" step="0.01" placeholder="0" hint="one-time, % of capital" />
@@ -208,7 +212,7 @@ export default function StandaloneCalculator() {
           <Stat
             label="Your true yield"
             value={fmtPct(trueYield)}
-            sub="annual, after recurring fees + entry"
+            sub="annual, after recurring fees"
             color={trueYield === null ? FAINT : trueYield < 0 ? CORAL : MINT}
             big
           />

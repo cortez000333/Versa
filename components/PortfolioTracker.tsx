@@ -839,7 +839,7 @@ export default function PortfolioTracker() {
             />
           </Field>
 
-          <Field label="Flat fee (%/yr)">
+          <Field label="Management fee (%/yr)">
             <input
               type="number"
               step="0.01"
@@ -1033,7 +1033,7 @@ export default function PortfolioTracker() {
             <Stat
               label="Est. annual income"
               value={money(portfolio.estAnnualIncome)}
-              sub="gross, at headline"
+              sub="after recurring fees"
               color={INK}
             />
             <Stat
@@ -1055,9 +1055,9 @@ export default function PortfolioTracker() {
               color={INK}
             />
             <Stat
-              label="Avg yield-on-cost"
+              label="Avg yield-on-cost (gross)"
               value={pct(portfolio.weightedAvgYieldOnCost)}
-              sub="income ÷ cost basis"
+              sub="gross income ÷ cost basis, before fees"
               color={INK}
             />
             <Stat
@@ -1258,7 +1258,7 @@ export default function PortfolioTracker() {
                         {pct(r.trueYield)}
                       </td>
                       <td style={{ padding: "12px 14px", color: INK }}>
-                        {money(r.grossIncomePerYear)}
+                        {money(r.netIncomePerYear)}
                       </td>
                       <td style={{ padding: "12px 14px", color: MUTE, whiteSpace: "nowrap" }}>
                         {redemptionSummary(p)}

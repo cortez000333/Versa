@@ -32,12 +32,10 @@ export interface PositionResult {
   investedValue: number;
   currentValue: number;
   effectiveHoldingYears: number;
-  totalGainPct: number | null; // fraction (0.05 = +5%); null when pricePaid is 0
-  annualizedGainPct: number; // fraction
   perfFeeDrag: number; // percentage points
-  entryExitDrag: number; // percentage points
   trueYield: number; // percentage points; CAN be negative
-  grossIncomePerYear: number; // dollars
+  grossIncomePerYear: number; // dollars (at headline yield, gross of fees)
+  netIncomePerYear: number; // dollars (at true yield, after recurring fees)
   feeDragDollarsPerYear: number; // dollars
   costToExit: number; // dollars
   premiumDiscountToNav: number | null; // percent; separate metric, NOT in trueYield
@@ -113,43 +111,36 @@ export function computePosition(p: Position, now: Date = new Date()): PositionRe
       p.holdingPeriodYears && p.holdingPeriodYears > 0 ? p.holdingPeriodYears : 1;
   }
 
-  const totalGainPct =
-    p.pricePaid > 0 ? (p.currentPrice - p.pricePaid) / p.pricePaid : null;
-  const annualizedGainPct =
-    totalGainPct === null ? 0 : totalGainPct / effectiveHoldingYears;
-
-  // Performance fee bites only on positive annualized gains (floored at zero).
-  // annualizedGainPct is a fraction, so ×100 turns it into percentage points.
-  const perfFeeDrag =
-    p.pricePaid > 0
-      ? Math.max(0, annualizedGainPct * 100) * (p.feePerformance / 100)
-      : 0;
-
-  // One-time entry + exit fees amortized across the holding horizon.
-  const entryExitDrag = (p.feeEntry + p.feeExit) / effectiveHoldingYears;
+  // CANONICAL VERSA MODEL — only recurring fees reduce true yield:
+  //   trueYield = headline − managementFee − headline×(performanceFee/100)
+  // Performance fee is charged on the HEADLINE yield (percentage points).
+  // Entry/exit fees are NOT amortized in (they're reported as separate one-time
+  // costs); premium/discount is NOT folded in (reported as its own metric).
+  const perfFeeDrag = p.headlineYield * (p.feePerformance / 100);
 
   // True yield can go negative — we never floor it; that honesty is the point.
-  const trueYield = p.headlineYield - p.feeFlat - perfFeeDrag - entryExitDrag;
+  const trueYield = p.headlineYield - p.feeFlat - perfFeeDrag;
 
   const grossIncomePerYear = currentValue * (p.headlineYield / 100);
+  // Net income after recurring fees — drives Est. annual income.
+  const netIncomePerYear = currentValue * (trueYield / 100);
   const feeDragDollarsPerYear = currentValue * ((p.headlineYield - trueYield) / 100);
   const costToExit = currentValue * (p.feeExit / 100);
 
   // Premium/discount to NAV is reported on its own — it is NOT folded into yield.
+  // ENTRY premium: the price you PAID vs NAV (not current price vs NAV).
   const premiumDiscountToNav =
-    p.nav && p.nav > 0 ? ((p.currentPrice - p.nav) / p.nav) * 100 : null;
+    p.nav && p.nav > 0 ? ((p.pricePaid - p.nav) / p.nav) * 100 : null;
 
   return {
     id: p.id,
     investedValue,
     currentValue,
     effectiveHoldingYears,
-    totalGainPct,
-    annualizedGainPct,
     perfFeeDrag,
-    entryExitDrag,
     trueYield,
     grossIncomePerYear,
+    netIncomePerYear,
     feeDragDollarsPerYear,
     costToExit,
     premiumDiscountToNav,
@@ -243,7 +234,8 @@ export function computePortfolio(positions: Position[], now: Date = new Date()):
   });
   const weightedAvgYieldOnCost = yocDenom > 0 ? yocNumer / yocDenom : null;
 
-  const estAnnualIncome = sum(results.map((r) => r.grossIncomePerYear));
+  // Est. annual income is NET of recurring fees (current value × true yield).
+  const estAnnualIncome = sum(results.map((r) => r.netIncomePerYear));
   const totalFeeDragPerYear = sum(results.map((r) => r.feeDragDollarsPerYear));
   const costToExitAll = sum(results.map((r) => r.costToExit));
 
