@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LineChart, Calculator, FileText } from "lucide-react";
+import { LineChart, Calculator, FileText, LogIn } from "lucide-react";
 
 // ── Brand tokens (mirrors the tracker / research / calculator pages) ──
 const CARD = "#111A2E";
@@ -57,10 +57,34 @@ export default function HomePage() {
       </div>
 
       {/* ── One-line description ─────────────────────────────── */}
-      <p style={{ fontSize: 17, color: MUTE, margin: "0 0 50px", lineHeight: 1.6, maxWidth: 620 }}>
+      <p style={{ fontSize: 17, color: MUTE, margin: "0 0 28px", lineHeight: 1.6, maxWidth: 620 }}>
         Tools and independent research for tokenized real-world assets — see what you
         really earn, not just the headline number.
       </p>
+
+      {/* ── Account CTA ──────────────────────────────────────── */}
+      <div style={{ marginBottom: 50 }}>
+        <Link
+          href="/account"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: BLUE,
+            color: "#fff",
+            borderRadius: 10,
+            padding: "12px 22px",
+            fontSize: 15,
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          <LogIn size={17} /> Create account / Sign in
+        </Link>
+        <span style={{ color: FAINT, fontSize: 13.5, marginLeft: 14 }}>
+          to save and reload your portfolio
+        </span>
+      </div>
 
       {/* ── Tool cards ───────────────────────────────────────── */}
       <div

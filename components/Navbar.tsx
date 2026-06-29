@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Wallet } from "lucide-react";
+import { LogIn } from "lucide-react";
 
 const LINE = "#1E2A44";
 const BLUE = "#4F8FF7";
@@ -34,7 +34,7 @@ export default function Navbar() {
             <Link href="/research" style={{ color: INK, fontWeight: 600, textDecoration: "none" }}>Research</Link>
           </div>
         </div>
-        <button style={{
+        <Link href="/account" style={{
           background: BLUE,
           color: "#fff",
           border: "none",
@@ -42,13 +42,13 @@ export default function Navbar() {
           padding: "9px 17px",
           fontSize: 13.5,
           fontWeight: 700,
-          cursor: "pointer",
+          textDecoration: "none",
           display: "flex",
           alignItems: "center",
           gap: 7,
         }}>
-          <Wallet size={15} /> Join waitlist
-        </button>
+          <LogIn size={15} /> Sign in
+        </Link>
       </div>
     </nav>
   );
