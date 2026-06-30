@@ -39,4 +39,20 @@ export interface Position {
   redemptionFrequency: RedemptionFrequency;
   settlementDays: number; // T+n
   lockupUntil: string | null; // ISO date, optional
+
+  // ── Live-refresh foundation (Part B) ────────────────────────────
+  // A snapshot of the live values from BEFORE the most recent on-load refresh,
+  // captured so a FUTURE "what changed since your last visit" feature can
+  // compute deltas (fresh − previous). These are populated ONLY when a saved
+  // position is refreshed on load; they're absent on freshly-added / session-
+  // only positions. They are plain optional fields, so:
+  //   • old saved rows that predate them parse fine (read back as undefined);
+  //   • they ride along in the JSONB `positions` column on the next Save — so
+  //     they PERSIST through save/load with NO DB migration needed.
+  // No UI reads them yet (deliberately — Part B is plumbing only).
+  prevCurrentPrice?: number | null;
+  prevNav?: number | null;
+  prevHeadlineYield?: number | null;
+  prevCurrentValue?: number | null; // value (amount × currentPrice) at the prior snapshot
+  lastRefreshedAt?: string | null; // ISO timestamp of the last successful live refresh
 }

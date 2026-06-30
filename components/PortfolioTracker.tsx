@@ -69,6 +69,25 @@ const inputStyle: React.CSSProperties = {
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "auto" };
 
+// Per-position freshness chip (in the positions table) — "Live · refreshed"
+// vs "Saved value". Kept tiny so it sits under the asset name unobtrusively.
+const freshChip = (color: string): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  fontSize: 9.5,
+  fontWeight: 600,
+  color,
+  marginTop: 3,
+});
+const freshDot = (color: string): React.CSSProperties => ({
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: color,
+  flexShrink: 0,
+});
+
 // Small inline status note shown under the ticker field during/after a live fetch.
 const liveNoteStyle = (color: string): React.CSSProperties => ({
   fontSize: 11,
@@ -346,6 +365,21 @@ export default function PortfolioTracker() {
   // auto-load fires once per sign-in (never silently re-overwrites).
   const autoLoadedFor = useRef<string | null>(null);
 
+  // ── On-load live refresh state (Part A) ────────────────────────
+  // After a saved portfolio is restored we re-fetch live NAV/price/yield for
+  // each resolvable ticker, non-blocking. These drive the per-position
+  // "refreshed live vs. kept saved" indicator so a stale value is never shown
+  // as fresh.
+  const [refreshing, setRefreshing] = useState(false);
+  // ids of the positions restored by the most recent load — scopes the
+  // freshness indicator to loaded positions (freshly-added ones get no chip).
+  const [loadedIds, setLoadedIds] = useState<Set<string>>(new Set());
+  // subset of loadedIds whose live data was successfully refreshed this pass.
+  const [refreshedIds, setRefreshedIds] = useState<Set<string>>(new Set());
+  // Monotonic token: a newer load invalidates an in-flight older refresh pass
+  // so a stale response can't write into freshly-loaded data.
+  const refreshToken = useRef(0);
+
   // ── Live RWA.xyz fetch state (Step 2) ──────────────────────────
   // Enhancement over manual entry: typing a ticker and blurring the field
   // auto-fills NAV / current price / headline yield from live data. Every
@@ -375,8 +409,15 @@ export default function PortfolioTracker() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      // Reset auto-load tracking on full sign-out so a later sign-in re-loads.
-      if (!s) autoLoadedFor.current = null;
+      // Reset auto-load tracking on full sign-out so a later sign-in re-loads,
+      // and clear the freshness indicators (they only apply to a loaded set).
+      if (!s) {
+        autoLoadedFor.current = null;
+        refreshToken.current++; // invalidate any in-flight refresh pass
+        setLoadedIds(new Set());
+        setRefreshedIds(new Set());
+        setRefreshing(false);
+      }
     });
     return () => {
       active = false;
@@ -397,6 +438,78 @@ export default function PortfolioTracker() {
     return (data.positions ?? []) as Position[];
   }
 
+  // ── Re-fetch live data for a just-loaded portfolio (Part A) ────
+  // Runs AFTER the saved snapshot is already on screen, so the UI is never
+  // blocked. Each position with a resolvable ticker gets a fresh fetch; on
+  // success we overwrite its live fields (each independently, only if non-null)
+  // and snapshot the pre-refresh values for the future change-display (Part B).
+  // Every failure mode degrades to keeping the saved value — we NEVER blank a
+  // field and NEVER throw. A position is marked "refreshed" only when its fetch
+  // actually returned live data; everything else keeps (and is shown as) saved.
+  async function refreshLiveData(loaded: Position[]) {
+    // Only positions with a non-empty name are candidates to resolve a ticker.
+    const candidates = loaded.filter((p) => p.assetName.trim() !== "");
+    if (candidates.length === 0) return; // nothing to refresh — leave snapshot as-is
+
+    const token = ++refreshToken.current; // invalidates any older in-flight pass
+    setRefreshing(true);
+    try {
+      await Promise.all(
+        candidates.map(async (p) => {
+          const ticker = p.assetName.trim().toUpperCase();
+          try {
+            const res = await fetch(`/api/rwa?ticker=${encodeURIComponent(ticker)}`);
+            if (!res.ok) return; // keep saved snapshot for this position
+            const data = (await res.json()) as {
+              nav: number | null;
+              price: number | null;
+              apy: number | null;
+              found: boolean;
+            };
+            // Not a resolvable ticker (or junk) → keep the saved value, no mark.
+            if (!data || !data.found) return;
+            // A newer load started while we were in flight → drop this result.
+            if (refreshToken.current !== token) return;
+
+            const now = new Date().toISOString();
+            setPositions((prev) =>
+              prev.map((x) => {
+                if (x.id !== p.id) return x;
+                return {
+                  ...x,
+                  // Part B foundation: snapshot the pre-refresh live values +
+                  // current value so a later "what changed" feature can diff
+                  // them. No UI reads these yet.
+                  prevCurrentPrice: x.currentPrice,
+                  prevNav: x.nav,
+                  prevHeadlineYield: x.headlineYield,
+                  prevCurrentValue: x.amount * x.currentPrice,
+                  lastRefreshedAt: now,
+                  // Part A: overwrite live fields with fresh data — each field
+                  // independently, only when non-null (e.g. BUIDL's null price
+                  // keeps the saved price instead of wiping it).
+                  currentPrice: data.price != null ? data.price : x.currentPrice,
+                  nav: data.nav != null ? data.nav : x.nav,
+                  headlineYield: data.apy != null ? data.apy : x.headlineYield,
+                };
+              }),
+            );
+            setRefreshedIds((prev) => {
+              const next = new Set(prev);
+              next.add(p.id);
+              return next;
+            });
+          } catch {
+            // network error / timeout / junk → keep the saved snapshot. No throw.
+          }
+        }),
+      );
+    } finally {
+      // Only the latest pass clears the spinner (an older pass must not).
+      if (refreshToken.current === token) setRefreshing(false);
+    }
+  }
+
   // ── Manual load (button) ───────────────────────────────────────
   async function loadPortfolio(opts?: { silent?: boolean }) {
     if (!session) return;
@@ -411,9 +524,16 @@ export default function PortfolioTracker() {
         return;
       }
       setPositions(saved);
+      // Scope the freshness indicator to this loaded set, and reset which of
+      // them have been refreshed (the refresh pass below repopulates it).
+      setLoadedIds(new Set(saved.map((p) => p.id)));
+      setRefreshedIds(new Set());
       if (!opts?.silent) {
         setNotice({ kind: "success", text: "Loaded your saved portfolio." });
       }
+      // Kick off the live refresh WITHOUT awaiting — the saved snapshot is
+      // already rendered; values update in place as fetches return.
+      void refreshLiveData(saved);
     } catch (err) {
       setNotice({
         kind: "error",
@@ -706,6 +826,24 @@ export default function PortfolioTracker() {
           }}
         >
           {notice.text}
+        </div>
+      )}
+
+      {refreshing && (
+        <div
+          style={{
+            ...cardStyle,
+            padding: "11px 16px",
+            marginBottom: 16,
+            fontSize: 13,
+            color: BLUE,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Loader2 size={14} style={{ animation: "versaspin 0.9s linear infinite" }} />
+          Refreshing live data from RWA.xyz…
         </div>
       )}
 
@@ -1236,6 +1374,29 @@ export default function PortfolioTracker() {
                         <div style={{ color: FAINT, fontSize: 10.5 }}>
                           {p.issuer} · {p.chain}
                         </div>
+                        {/* Freshness indicator — only for positions restored from
+                            a saved load. Tells the user, per position, whether the
+                            shown live values are fresh-from-RWA or the saved
+                            snapshot we couldn't refresh. Never labels a stale value
+                            as fresh. */}
+                        {loadedIds.has(p.id) &&
+                          (refreshedIds.has(p.id) ? (
+                            <div style={freshChip(MINT)}>
+                              <span style={freshDot(MINT)} /> Live · refreshed just now
+                            </div>
+                          ) : refreshing && p.assetName.trim() !== "" ? (
+                            <div style={freshChip(MUTE)}>
+                              <Loader2
+                                size={9}
+                                style={{ animation: "versaspin 0.9s linear infinite" }}
+                              />{" "}
+                              Refreshing…
+                            </div>
+                          ) : (
+                            <div style={freshChip(MUTE)}>
+                              <span style={freshDot(FAINT)} /> Saved value · couldn&rsquo;t refresh
+                            </div>
+                          ))}
                       </td>
                       <td style={{ padding: "12px 14px", color: MUTE }}>{money(r.investedValue)}</td>
                       <td style={{ padding: "12px 14px", color: INK, fontWeight: 600 }}>
